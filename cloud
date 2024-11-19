@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "☁️ Cloud Hub ☁️",
+   Name = "☁️ [BETA] Cloud Hub ☁️",
    LoadingTitle = "Gadalf-cloud scripts",
    LoadingSubtitle = "by Gadalf",
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
@@ -36,112 +36,303 @@ local Window = Rayfield:CreateWindow({
 local MainTab = Window:CreateTab("Cheats 👾", nil) -- Title, Image
 local MainSection = MainTab:CreateSection("Main")
 
-local Toggle = MainTab:CreateToggle({
-   Name = "Toggle ESP",
-   CurrentValue = true,
-   Flag = "toggleesp", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+-- ESP Toggle
+local connections = {}  -- To store connections for ESP to remove them when the toggle is off
+local Storage -- This will store highlights and will be cleared when ESP is off
+
+local ToggleESP = MainTab:CreateToggle({
+   Name = "ESP   (Doesn't work in every Game + Re-toggle to reload!)",
+   CurrentValue = false,
+   Flag = "toggleesp", -- A flag is the identifier for the configuration file
    Callback = function(Value)
-   local DepthMode = "AlwaysOnTop"
-local FillTransparency = 0.5
-local OutlineTransparency = 0
+      local CoreGui = game:FindService("CoreGui")
+      local Players = game:FindService("Players")
+      local lp = Players.LocalPlayer
 
-local CoreGui = game:FindService("CoreGui")
-local Players = game:FindService("Players")
-local lp = Players.LocalPlayer
-local connections = {}
+      if Value then
+         -- Initialize ESP
+         Storage = Instance.new("Folder")
+         Storage.Parent = CoreGui
+         Storage.Name = "Highlight_Storage"
 
-local Storage = Instance.new("Folder")
-Storage.Parent = CoreGui
-Storage.Name = "Highlight_Storage"
+         -- Function to create ESP highlights for a player
+         local function CreateHighlightForPlayer(plr)
+            local Highlight = Instance.new("Highlight")
+            Highlight.Name = plr.Name
+            Highlight.DepthMode = "AlwaysOnTop"
+            Highlight.FillTransparency = 0.5
+            Highlight.OutlineTransparency = 0
+            Highlight.Parent = Storage
 
-local function GetTeamColors(plr)
-    if plr.Team == lp.Team then
-        return Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 255, 0) -- Verbündete = grün
-    else
-        return Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0) -- Feinde = rot
-    end
-end
+            local FillColor, OutlineColor
+            if plr.Team == lp.Team then
+               FillColor = Color3.fromRGB(0, 255, 0)
+               OutlineColor = Color3.fromRGB(0, 255, 0) -- Allies = green
+            else
+               FillColor = Color3.fromRGB(255, 0, 0)
+               OutlineColor = Color3.fromRGB(255, 0, 0) -- Enemies = red
+            end
 
-local function CreateHighlightForPlayer(plr)
-    local Highlight = Instance.new("Highlight")
-    Highlight.Name = plr.Name
-    Highlight.DepthMode = DepthMode
-    Highlight.FillTransparency = FillTransparency
-    Highlight.OutlineTransparency = OutlineTransparency
-    Highlight.Parent = Storage
-    
-    local FillColor, OutlineColor = GetTeamColors(plr)
-    Highlight.FillColor = FillColor
-    Highlight.OutlineColor = OutlineColor
-    
-    local plrchar = plr.Character
-    if plrchar then
-        Highlight.Adornee = plrchar
-    end
+            Highlight.FillColor = FillColor
+            Highlight.OutlineColor = OutlineColor
 
-    connections[plr] = plr.CharacterAdded:Connect(function(char)
-        Highlight.Adornee = char
-    end)
+            local plrchar = plr.Character
+            if plrchar then
+               Highlight.Adornee = plrchar
+            end
 
-    -- Erstellen des Namens-Tags, das über dem Kopf schwebt
-    local nameTag = Instance.new("BillboardGui")
-    nameTag.Size = UDim2.new(0, 200, 0, 50)
-    nameTag.Adornee = plr.Character:WaitForChild("Head")
-    nameTag.Parent = plr.Character:WaitForChild("Head")
-    nameTag.AlwaysOnTop = true
-    nameTag.StudsOffset = Vector3.new(0, 2, 0)  -- Verschiebt den Namen 2 Studs über den Kopf des Spielers
+            -- Create Name Tags above players' heads
+            local nameTag = Instance.new("BillboardGui")
+            nameTag.Size = UDim2.new(0, 200, 0, 50)
+            nameTag.Adornee = plr.Character:WaitForChild("Head")
+            nameTag.Parent = plr.Character:WaitForChild("Head")
+            nameTag.AlwaysOnTop = true
+            nameTag.StudsOffset = Vector3.new(0, 2, 0)  -- Moves the name 2 studs above the player's head
 
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 1, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = plr.Name
-    nameLabel.TextColor3 = FillColor -- Name hat die gleiche Farbe wie das Highlight
-    nameLabel.TextStrokeTransparency = 0.8
-    nameLabel.TextSize = 20
-    nameLabel.Parent = nameTag
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 1, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = plr.Name
+            nameLabel.TextColor3 = FillColor -- Name has the same color as the highlight
+            nameLabel.TextStrokeTransparency = 0.8
+            nameLabel.TextSize = 20
+            nameLabel.Parent = nameTag
 
-    local function UpdateNameTagVisibility()
-        local distance = (plr.Character.Head.Position - lp.Character.Head.Position).magnitude
-        if distance < 15 then
-            nameTag.Enabled = false
-        else
-            nameTag.Enabled = true
-        end
+            local function UpdateNameTagVisibility()
+                local distance = (plr.Character.Head.Position - lp.Character.Head.Position).magnitude
+                if distance < 15 then
+                    nameTag.Enabled = false
+                else
+                    nameTag.Enabled = true
+                end
 
-        -- Verkleinert den Namen je näher man kommt
-        local newSize = math.clamp(20 - (distance / 10), 10, 20) -- Min. Schriftgröße: 10, Max. Schriftgröße: 20
-        nameLabel.TextSize = newSize
-    end
+                -- Adjust name size based on distance
+                local newSize = math.clamp(20 - (distance / 10), 10, 20) -- Min. font size: 10, Max. font size: 20
+                nameLabel.TextSize = newSize
+            end
 
-    game:GetService("RunService").Heartbeat:Connect(UpdateNameTagVisibility)
+            game:GetService("RunService").Heartbeat:Connect(UpdateNameTagVisibility)
 
-    plr:GetPropertyChangedSignal("Team"):Connect(function()
-        local NewFillColor, NewOutlineColor = GetTeamColors(plr)
-        Highlight.FillColor = NewFillColor
-        Highlight.OutlineColor = NewOutlineColor
-        nameLabel.TextColor3 = NewFillColor -- Namefarbe ändern, wenn sich das Team ändert
-    end)
-end
+            -- Update ESP colors if team changes
+            plr:GetPropertyChangedSignal("Team"):Connect(function()
+                local NewFillColor, NewOutlineColor
+                if plr.Team == lp.Team then
+                    NewFillColor = Color3.fromRGB(0, 255, 0)
+                    NewOutlineColor = Color3.fromRGB(0, 255, 0)
+                else
+                    NewFillColor = Color3.fromRGB(255, 0, 0)
+                    NewOutlineColor = Color3.fromRGB(255, 0, 0)
+                end
+                Highlight.FillColor = NewFillColor
+                Highlight.OutlineColor = NewOutlineColor
+                nameLabel.TextColor3 = NewFillColor
+            end)
+         end
 
--- Erstelle Highlights für alle aktuellen Spieler
-for _, plr in ipairs(Players:GetPlayers()) do
-    CreateHighlightForPlayer(plr)
-end
+         -- Create highlights for all existing players
+         for _, plr in ipairs(Players:GetPlayers()) do
+            CreateHighlightForPlayer(plr)
+         end
 
--- Erstelle Highlights für Spieler, die neu beitreten
-Players.PlayerAdded:Connect(function(plr)
-    CreateHighlightForPlayer(plr)
-end)
+         -- Create highlights for new players joining
+         Players.PlayerAdded:Connect(function(plr)
+            CreateHighlightForPlayer(plr)
+         end)
 
--- Entferne Highlights, wenn Spieler das Spiel verlassen
-Players.PlayerRemoving:Connect(function(plr)
-    local plrname = plr.Name
-    if Storage[plrname] then
-        Storage[plrname]:Destroy()
-    end
-    if connections[plr] then
-        connections[plr]:Disconnect()
-    end
-end)
+         -- Remove highlights when players leave
+         Players.PlayerRemoving:Connect(function(plr)
+            local plrname = plr.Name
+            if Storage[plrname] then
+               Storage[plrname]:Destroy()
+            end
+            if connections[plr] then
+               connections[plr]:Disconnect()
+            end
+         end)
+      else
+         -- Remove ESP Highlights when toggled off
+         if Storage then
+            Storage:Destroy()
+            connections = {}  -- Clear the connections
+         end
+      end
+   end,
+})
+
+-- Infinity Jump Toggle
+local ToggleInfinityJump = MainTab:CreateToggle({
+   Name = "Infinity Jump",
+   CurrentValue = false,
+   Flag = "toggleinfjump", -- Unique Flag for Infinity Jump
+   Callback = function(Value)
+      local Player = game:GetService('Players').LocalPlayer
+      local UIS = game:GetService('UserInputService')
+      local JumpHeight = 50 -- Height for the infinite jump
+      local ActionConnection = nil
+
+      -- Spacebar event handler for infinite jump
+      local function OnSpacebarPress(UserInput)
+         if UserInput.UserInputType == Enum.UserInputType.Keyboard and UserInput.KeyCode == Enum.KeyCode.Space then
+            -- Check if the player is jumping or in freefall
+            local humanoid = Player.Character and Player.Character:FindFirstChild("Humanoid")
+            if humanoid and (humanoid:GetState() == Enum.HumanoidStateType.Jumping or humanoid:GetState() == Enum.HumanoidStateType.Freefall) then
+               Player.Character.HumanoidRootPart.Velocity = Vector3.new(0, JumpHeight, 0)
+            end
+         end
+      end
+
+      if Value then
+         -- Activate infinite jump by listening to spacebar press
+         ActionConnection = UIS.InputBegan:Connect(OnSpacebarPress)
+      else
+         -- Deactivate the infinite jump when toggled off
+         if ActionConnection then
+            ActionConnection:Disconnect()  -- Remove event handler
+            ActionConnection = nil
+         end
+      end
+   end,
+})
+
+-- Aimbot Toggle
+local ToggleAimbot = MainTab:CreateToggle({
+   Name = "Aimbot",
+   CurrentValue = false,
+   Flag = "toggleaimbot", -- A flag is the identifier for the configuration file
+   Callback = function(Value)
+      local Players = game:GetService("Players")
+      local LocalPlayer = Players.LocalPlayer
+      local Camera = workspace.CurrentCamera
+      local RunService = game:GetService("RunService")
+      local UserInputService = game:GetService("UserInputService")
+      local Holding = false
+
+      _G.AimbotEnabled = false  -- Initially set Aimbot to false (disabled)
+      _G.TeamCheck = true
+      _G.AimPart = "Head"
+      _G.Sensitivity = 0  -- No tweening for more aggressive response
+
+      _G.CircleSides = 64
+      _G.CircleColor = Color3.fromRGB(153, 255, 153)
+      _G.CircleTransparency = 0.7
+      _G.CircleRadius = 150
+      _G.CircleFilled = false
+      _G.CircleVisible = true
+      _G.CircleThickness = 0
+
+      _G.AimbotRadius = 150 -- The radius of the aimbot (how far it works)
+
+      local FOVCircle = Drawing.new("Circle")
+      FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+      FOVCircle.Radius = _G.CircleRadius
+      FOVCircle.Filled = _G.CircleFilled
+      FOVCircle.Color = _G.CircleColor
+      FOVCircle.Visible = _G.CircleVisible
+      FOVCircle.Transparency = _G.CircleTransparency
+      FOVCircle.NumSides = _G.CircleSides
+      FOVCircle.Thickness = _G.CircleThickness
+
+      -- Calculate the distance from the mouse to the target player
+      local function GetDistanceToMouse(player)
+          local ScreenPoint = Camera:WorldToScreenPoint(player.Character:WaitForChild("HumanoidRootPart", math.huge).Position)
+          local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+          return VectorDistance
+      end
+
+      -- Find the closest player to the mouse pointer
+      local function GetClosestPlayer()
+          local MaximumDistance = _G.AimbotRadius
+          local Target = nil
+          local ClosestDistance = math.huge
+
+          for _, v in next, Players:GetPlayers() do
+              if v.Name ~= LocalPlayer.Name then
+                  if _G.TeamCheck == true then
+                      if v.Team ~= LocalPlayer.Team then
+                          if v.Character ~= nil then
+                              if v.Character:FindFirstChild("HumanoidRootPart") ~= nil then
+                                  if v.Character:FindFirstChild("Humanoid") ~= nil and v.Character:FindFirstChild("Humanoid").Health ~= 0 then
+                                      local VectorDistance = GetDistanceToMouse(v)
+
+                                      if VectorDistance < ClosestDistance and VectorDistance < MaximumDistance then
+                                          ClosestDistance = VectorDistance
+                                          Target = v
+                                      end
+                                  end
+                              end
+                          end
+                      end
+                  else
+                      if v.Character ~= nil then
+                          if v.Character:FindFirstChild("HumanoidRootPart") ~= nil then
+                              if v.Character:FindFirstChild("Humanoid") ~= nil and v.Character:FindFirstChild("Humanoid").Health ~= 0 then
+                                  local VectorDistance = GetDistanceToMouse(v)
+
+                                  if VectorDistance < ClosestDistance and VectorDistance < MaximumDistance then
+                                      ClosestDistance = VectorDistance
+                                      Target = v
+                                  end
+                              end
+                          end
+                      end
+                  end
+              end
+          end
+          return Target
+      end
+
+      local RenderSteppedConnection  -- To store the RenderStepped listener
+
+      UserInputService.InputBegan:Connect(function(input)
+          if input.UserInputType == Enum.UserInputType.MouseButton2 then
+              Holding = true
+          end
+      end)
+
+      UserInputService.InputEnded:Connect(function(input)
+          if input.UserInputType == Enum.UserInputType.MouseButton2 then
+              Holding = false
+          end
+      end)
+
+      -- Function to stop the aimbot when toggled off
+      local function StopAimbot()
+          if RenderSteppedConnection then
+              RenderSteppedConnection:Disconnect()  -- Stop the aimbot tracking
+              RenderSteppedConnection = nil
+          end
+          _G.AimbotEnabled = false  -- Disable aimbot
+          FOVCircle.Visible = false  -- Hide the FOV circle
+      end
+
+      -- If the toggle is activated, start the aimbot
+      if Value then
+          _G.AimbotEnabled = true
+          FOVCircle.Visible = true  -- Show the FOV circle
+
+          -- Run the aimbot on every frame
+          RenderSteppedConnection = RunService.RenderStepped:Connect(function()
+              FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+              FOVCircle.Radius = _G.CircleRadius
+              FOVCircle.Filled = _G.CircleFilled
+              FOVCircle.Color = _G.CircleColor
+              FOVCircle.Visible = _G.CircleVisible
+              FOVCircle.Transparency = _G.CircleTransparency
+              FOVCircle.NumSides = _G.CircleSides
+              FOVCircle.Thickness = _G.CircleThickness
+
+              if Holding and _G.AimbotEnabled then
+                  local Target = GetClosestPlayer()
+
+                  if Target and Target.Character and Target.Character:FindFirstChild(_G.AimPart) then
+                      local AimPosition = Target.Character[_G.AimPart].Position
+                      Camera.CFrame = CFrame.new(Camera.CFrame.Position, AimPosition)
+                  end
+              end
+          end)
+      else
+          -- If the toggle is deactivated, stop the aimbot
+          StopAimbot()
+      end
    end,
 })
