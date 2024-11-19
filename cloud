@@ -33,12 +33,13 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
+local MainTab = Window:CreateTab("Cheats 👾", nil) -- Title, Image
 local MainSection = MainTab:CreateSection("Main")
 
 local Toggle = MainTab:CreateToggle({
    Name = "Toggle ESP",
-   CurrentValue = false,
-   Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   CurrentValue = true,
+   Flag = "toggleesp", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
    local DepthMode = "AlwaysOnTop"
 local FillTransparency = 0.5
@@ -144,5 +145,3 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
    end,
 })
-
-local MainTab = Window:CreateTab("Cheats 👾", nil) -- Title, Image
